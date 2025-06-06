@@ -4,48 +4,64 @@ echo "=========================================="
 echo "🔐 GPG Key Import Script (Private & Public)"
 echo "=========================================="
 
-# Check for GPG
+# Check if gpg is installed
 if ! command -v gpg &> /dev/null; then
     echo "❌ GPG is not installed. Please install it first."
     exit 1
 fi
 
-# Ask for directory containing key files
-read -p "Enter path to directory containing .asc key files: " KEY_DIR
+# Prompt user for directory containing key files
+read -rp "Enter the directory path containing .asc key files: " KEY_DIR
 
-if [ ! -d "$KEY_DIR" ]; then
+# Validate directory exists
+if [[ ! -d "$KEY_DIR" ]]; then
     echo "❌ Directory '$KEY_DIR' does not exist."
     exit 1
 fi
 
-# Import all .asc files
+# Import all .asc files in the directory
 FOUND_KEYS=0
-for file in "$KEY_DIR"/*.asc; do
-    if [ -f "$file" ]; then
-        echo "🔐 Importing key file: $file"
-        gpg --import "$file"
-        FOUND_KEYS=$((FOUND_KEYS + 1))
+for keyfile in "$KEY_DIR"/*.asc; do
+    if [[ -f "$keyfile" ]]; then
+        echo "🔐 Importing key file: $keyfile"
+        gpg --import "$keyfile"
+        ((FOUND_KEYS++))
     fi
 done
 
-if [ "$FOUND_KEYS" -eq 0 ]; then
-    echo "⚠️ No .asc files found in $KEY_DIR"
+if [[ $FOUND_KEYS -eq 0 ]]; then
+    echo "⚠️ No .asc key files found in '$KEY_DIR'. Nothing imported."
     exit 1
 fi
 
-# Show imported secret keys
+# Show the imported secret keys summary
 echo ""
-echo "✅ GPG Keys Imported. Current secret keys:"
+echo "✅ GPG keys imported successfully. Your secret keys:"
 gpg --list-secret-keys --keyid-format=long
 
-# Suggest Git setup
-echo ""
-echo "👉 You can now set up Git to use your GPG key:"
-echo "  git config --global user.signingkey YOUR_KEY_ID"
-echo "  git config --global commit.gpgsign true"
+# Detect newest imported GPG key ID (long format)
+# We'll get the most recent secret key's KEY_ID (16 hex digits)
+NEW_KEY_ID=$(gpg --list-secret-keys --keyid-format=long --with-colons | \
+    grep '^sec' | head -n1 | cut -d':' -f5)
 
-# Optional GPG_TTY setup
-if ! grep -q "GPG_TTY" ~/.bashrc; then
-    echo 'export GPG_TTY=$(tty)' >> ~/.bashrc
-    echo "🛠 Added 'export GPG_TTY=\$(tty)' to ~/.bashrc"
+if [[ -z "$NEW_KEY_ID" ]]; then
+    echo "❌ Failed to detect your GPG key ID."
+    exit 1
 fi
+
+# Configure Git to use this GPG key for signing commits
+git config --global user.signingkey "$NEW_KEY_ID"
+git config --global commit.gpgsign true
+
+echo ""
+echo "👉 Git has been configured to sign commits with your GPG key:"
+echo "   user.signingkey = $NEW_KEY_ID"
+echo "   commit.gpgsign = true"
+
+# Add GPG_TTY to ~/.bashrc if not already present
+if ! grep -q "GPG_TTY" ~/.bashrc 2>/dev/null; then
+    echo 'export GPG_TTY=$(tty)' >> ~/.bashrc
+    echo "🛠 Added 'export GPG_TTY=\$(tty)' to ~/.bashrc for proper GPG interaction."
+fi
+
+echo "Done!"
