@@ -115,4 +115,14 @@ done
 
 echo ""
 echo "🎉 All Git aliases have been configured successfully."
+
+HOOKS_DIR="$HOME/.githooks"
+
+mkdir -p "$HOOKS_DIR"
+curl -Lo "$HOOKS_DIR/commit-msg" https://gerrit-review.googlesource.com/tools/hooks/commit-msg
+chmod +x "$HOOKS_DIR/commit-msg"
+
+git config --global core.hooksPath "$HOOKS_DIR"
+
+echo "✅ Gerrit Change-Id commit-msg hook installed globally."
 echo "Done ✓"
