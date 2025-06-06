@@ -78,7 +78,41 @@ git config --global user.email
 echo "Credential helper:"
 git config --global credential.helper
 
-echo ""
-echo "Test it with:"
-echo "  git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git"
+echo "==============================="
+echo "🔧 Setting up Git Aliases"
+echo "==============================="
 
+# Define aliases
+declare -A aliases=(
+    [c]="commit -s"
+    [cam]="commit --am"
+    [cm]="commit"
+    [csm]="commit -s -m"
+    [ca]="cherry-pick --abort"
+    [cr]="cherry-pick --signoff"
+    [p]="push -f"
+    [cc]="cherry-pick --continue"
+    [cs]="cherry-pick --skip"
+    [cp]="cherry-pick"
+    [r]="revert"
+    [rc]="revert --continue"
+    [ro]="remote rm origin"
+    [ra]="remote add origin"
+    [s]="switch -c"
+    [b]="branch"
+    [rh]="reset --hard"
+    [ch]="checkout"
+    [f]="fetch"
+    [m]="merge"
+)
+
+# Apply aliases to Git config
+for key in "${!aliases[@]}"; do
+    value="${aliases[$key]}"
+    git config --global alias."$key" "$value"
+    echo "✅ alias.$key = $value"
+done
+
+echo ""
+echo "🎉 All Git aliases have been configured successfully."
+echo "Done ✓"
